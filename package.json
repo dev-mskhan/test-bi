@@ -1,0 +1,12 @@
+{
+  "name": "webhook-platform",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w main-server\" \"npm run dev -w webhook-server\" \"npm run dev -w main-client\" \"npm run dev -w webhook-dashboard\"",
+    "db:migrate": "npm run migrate -w main-server && npm run migrate -w webhook-server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

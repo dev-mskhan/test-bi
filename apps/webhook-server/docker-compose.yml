@@ -1,0 +1,45 @@
+services:
+  webhook_db:
+    image: pgvector/pgvector:pg16
+    container_name: webhook_db
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${WH_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${WH_POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${WH_POSTGRES_DB:-webhook_db}
+    volumes:
+      - webhook_db_data:/var/lib/postgresql/data
+    networks:
+      - webhook-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WH_POSTGRES_USER:-postgres} -d ${WH_POSTGRES_DB:-webhook_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  webhook_redis:
+    image: redis:7.2-alpine
+    container_name: webhook_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - webhook_redis_data:/data
+    networks:
+      - webhook-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  webhook_db_data:
+  webhook_redis_data:
+
+networks:
+  webhook-net:
+    driver: bridge
