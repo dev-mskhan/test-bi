@@ -17,6 +17,8 @@ interface Delivery {
   created_at: string;
   event_type: string;
   log_status: string;
+  user_email?: string | null;
+  user_name?: string | null;
 }
 
 export default function Deliveries() {
@@ -86,6 +88,7 @@ export default function Deliveries() {
           <thead>
             <tr>
               <th>Event</th>
+              <th>User</th>
               <th>Attempt</th>
               <th>Status</th>
               <th>HTTP</th>
@@ -96,13 +99,13 @@ export default function Deliveries() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} style={{ textAlign: 'center', padding: 40 }}>
+                <td colSpan={7} style={{ textAlign: 'center', padding: 40 }}>
                   <span className="spinner" />
                 </td>
               </tr>
             ) : deliveries.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="empty-state">
                     <div className="empty-state-icon">📦</div>
                     <h3>No deliveries found</h3>
@@ -114,6 +117,17 @@ export default function Deliveries() {
               deliveries.map((d) => (
                 <tr key={d.id}>
                   <td><span className="mono">{d.event_type}</span></td>
+                  <td>
+                    {d.user_name || d.user_email ? (
+                      <>
+                        {d.user_name ? <strong>{d.user_name}</strong> : null}
+                        {d.user_name && d.user_email ? ' ' : null}
+                        {d.user_email ? <span className="mono">&lt;{d.user_email}&gt;</span> : null}
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text3)' }}>No user</span>
+                    )}
+                  </td>
                   <td style={{ textAlign: 'center' }}>
                     <span className="mono">#{d.attempt}</span>
                   </td>

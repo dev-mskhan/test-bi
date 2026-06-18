@@ -9,7 +9,7 @@ const router = Router();
 router.post('/:webhookId', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { webhookId } = req.params;
-
+    console.log(`📥 Received webhook for ${webhookId}`);
     // 1. Fetch endpoint + secret
     const { rows } = await pool.query(
       `SELECT * FROM webhook_endpoints

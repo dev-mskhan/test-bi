@@ -11,6 +11,8 @@ interface Log {
   created_at: string;
   webhook_id: string;
   endpoint_name: string;
+  user_email?: string | null;
+  user_name?: string | null;
   data_preview: string | null;
 }
 
@@ -109,6 +111,7 @@ export default function Logs() {
           <thead>
             <tr>
               <th>Event Type</th>
+              <th>User</th>
               <th>Endpoint</th>
               <th>Status</th>
               <th>Received</th>
@@ -117,13 +120,13 @@ export default function Logs() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={4} style={{ textAlign: 'center', padding: 40 }}>
+                <td colSpan={5} style={{ textAlign: 'center', padding: 40 }}>
                   <span className="spinner" />
                 </td>
               </tr>
             ) : logs.length === 0 ? (
               <tr>
-                <td colSpan={4}>
+                <td colSpan={5}>
                   <div className="empty-state">
                     <div className="empty-state-icon">📭</div>
                     <h3>No events found</h3>
@@ -135,6 +138,17 @@ export default function Logs() {
               logs.map((log) => (
                 <tr key={log.id} onClick={() => navigate(`/logs/${log.id}`)}>
                   <td><span className="mono">{log.event_type}</span></td>
+                  <td>
+                    {log.user_name || log.user_email ? (
+                      <>
+                        {log.user_name ? <strong>{log.user_name}</strong> : null}
+                        {log.user_name && log.user_email ? ' ' : null}
+                        {log.user_email ? <span className="mono">&lt;{log.user_email}&gt;</span> : null}
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text3)' }}>No user</span>
+                    )}
+                  </td>
                   <td>{log.endpoint_name}</td>
                   <td><Badge status={log.status} /></td>
                   <td style={{ color: 'var(--text2)', fontSize: 12 }}>

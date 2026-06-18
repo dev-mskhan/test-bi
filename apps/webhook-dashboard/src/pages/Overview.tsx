@@ -30,7 +30,8 @@ export default function Overview() {
   const socketRef              = useSocket();
   const navigate               = useNavigate();
   const { user, endpoint }     = useAuth();
-
+  console.log('Endpoint:', endpoint);
+  console.log('User:', user);
   useEffect(() => {
     whApi.stats()
       .then(({ data }) => setStats(data))

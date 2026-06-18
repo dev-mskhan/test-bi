@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: bi_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bi_user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: bi_platform
+    ports:
+      - "5432:5432"          # exposed to host — pgAdmin4 connects here
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql   # runs on first boot
+
+  redis:
+    image: redis:7-alpine
+    container_name: bi_redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

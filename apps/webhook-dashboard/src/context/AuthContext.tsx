@@ -28,7 +28,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.user);
         setEndpoint(data.endpoint || null);
       })
-      .catch(() => localStorage.removeItem('wh_access'))
+      .catch(() => {
+        localStorage.removeItem('wh_access');
+        window.dispatchEvent(new Event('wh_auth_changed'));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -37,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('wh_access', data.accessToken);
     setUser(data.user);
     setEndpoint(data.endpoint || null);
+    window.dispatchEvent(new Event('wh_auth_changed'));
   }
 
   async function register(name: string, email: string, password: string, webhookName: string) {
@@ -44,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('wh_access', data.accessToken);
     setUser(data.user);
     setEndpoint(data.endpoint || null);
+    window.dispatchEvent(new Event('wh_auth_changed'));
   }
 
   async function logout() {
@@ -51,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('wh_access');
     setUser(null);
     setEndpoint(null);
+    window.dispatchEvent(new Event('wh_auth_changed'));
   }
 
   return <Ctx.Provider value={{ user, endpoint, loading, login, register, logout }}>{children}</Ctx.Provider>;

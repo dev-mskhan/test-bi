@@ -9,29 +9,43 @@ api.interceptors.request.use((cfg) => {
 });
 
 let refreshing = false;
-let queue: Array<(t: string) => void> = [];
+let queue: Array<{ resolve: (t: string) => void; reject: (e: unknown) => void }> = [];
 
 api.interceptors.response.use(
   (r) => r,
   async (err) => {
     const orig = err.config;
     if (err.response?.status !== 401 || orig._retry) return Promise.reject(err);
+
     if (refreshing) {
-      return new Promise((res) => queue.push((t) => {
-        orig.headers.Authorization = `Bearer ${t}`;
-        res(api(orig));
-      }));
+      return new Promise((resolve, reject) => {
+        queue.push({
+          resolve: (t) => {
+            orig.headers.Authorization = `Bearer ${t}`;
+            resolve(api(orig));
+          },
+          reject,
+        });
+      });
     }
-    orig._retry = true; refreshing = true;
+
+    orig._retry = true;
+    refreshing = true;
     try {
       const { data } = await axios.post('/auth/refresh', {}, { withCredentials: true });
       localStorage.setItem('wh_access', data.accessToken);
-      queue.forEach((cb) => cb(data.accessToken)); queue = []; refreshing = false;
+      window.dispatchEvent(new Event('wh_auth_changed'));
+      queue.forEach((p) => p.resolve(data.accessToken));
+      queue = [];
+      refreshing = false;
       orig.headers.Authorization = `Bearer ${data.accessToken}`;
       return api(orig);
-    } catch {
-      refreshing = false; queue = [];
+    } catch (refreshErr) {
+      queue.forEach((p) => p.reject(refreshErr));
+      queue = [];
+      refreshing = false;
       localStorage.removeItem('wh_access');
+      window.dispatchEvent(new Event('wh_auth_changed'));
       window.location.href = '/login';
       return Promise.reject(err);
     }

@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS dashboard_refresh_tokens (
 -- Registered webhook endpoints (created by main server on startup)
 CREATE TABLE IF NOT EXISTS webhook_endpoints (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  dashboard_user_id         UUID NOT NULL REFERENCES dashboard_users(id) ON DELETE CASCADE,
   webhook_id      TEXT UNIQUE NOT NULL,   -- e.g. "wh_user_events"
   name            TEXT NOT NULL,
   secret          TEXT NOT NULL,          -- HMAC secret, store hashed

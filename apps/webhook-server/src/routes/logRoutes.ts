@@ -38,6 +38,8 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const { rows } = await pool.query(
       `SELECT l.id, l.event_type, l.status, l.created_at,
               e.webhook_id, e.name AS endpoint_name,
+              l.payload->'data'->>'email' AS user_email,
+              l.payload->'data'->>'name' AS user_name,
               l.payload->>'data' AS data_preview
        FROM webhook_logs l
        JOIN webhook_endpoints e ON e.id = l.endpoint_id
@@ -62,6 +64,8 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
     const { rows } = await pool.query(
       `SELECT l.*,
               e.webhook_id, e.name AS endpoint_name,
+              l.payload->'data'->>'email' AS user_email,
+              l.payload->'data'->>'name' AS user_name,
               COALESCE(
                 json_agg(
                   d ORDER BY d.attempt

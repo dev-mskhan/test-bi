@@ -1,0 +1,267 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [uuid_ossp(map: "uuid-ossp"), vector]
+}
+
+model analyses {
+  id          String                 @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  question    String
+  created_by  String?                @db.Uuid
+  plan        Json?
+  raw_data    Json?
+  findings    Json?
+  charts      Json?
+  report      Json?
+  embedding   Unsupported("vector")?
+  status      String                 @default("pending")
+  error       String?
+  started_at  DateTime?              @db.Timestamptz(6)
+  finished_at DateTime?              @db.Timestamptz(6)
+  created_at  DateTime               @default(now()) @db.Timestamptz(6)
+  users       users?                 @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+
+  @@index([embedding], map: "idx_analyses_embedding")
+  @@index([created_by], map: "idx_analyses_user")
+}
+
+model data_sources {
+  id                String                @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name              String
+  type              data_source_type_enum
+  connection_config Json                  @default("{}")
+  is_active         Boolean               @default(true)
+  last_synced       DateTime?             @db.Timestamptz(6)
+  created_at        DateTime              @default(now()) @db.Timestamptz(6)
+}
+
+model entities {
+  id         String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  type       entity_type_enum
+  name       String
+  segment    segment_enum?
+  attributes Json             @default("{}")
+  created_at DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@index([segment], map: "idx_entities_segment")
+  @@index([type], map: "idx_entities_type")
+}
+
+model events {
+  id          String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  event_type  event_type_enum
+  entity_type entity_type_enum
+  entity_id   String
+  value       Decimal?         @db.Decimal(18, 4)
+  metadata    Json             @default("{}")
+  occurred_at DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@index([entity_type, entity_id], map: "idx_events_entity")
+  @@index([occurred_at(sort: Desc)], map: "idx_events_occurred_at")
+  @@index([event_type], map: "idx_events_type")
+}
+
+model metrics {
+  id              String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  metric_name     String
+  value           Decimal        @db.Decimal(18, 4)
+  dimension       dimension_enum
+  dimension_value String
+  period          DateTime       @db.Date
+  recorded_at     DateTime       @default(now()) @db.Timestamptz(6)
+
+  @@index([metric_name], map: "idx_metrics_name")
+  @@index([period(sort: Desc)], map: "idx_metrics_period")
+}
+
+model step_results {
+  id            String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  run_id        String           @db.Uuid
+  step_order    Int
+  agent         agent_name_enum
+  input         Json             @default("{}")
+  output        Json             @default("{}")
+  duration_ms   Int?
+  status        step_status_enum @default(pending)
+  error         String?
+  created_at    DateTime         @default(now()) @db.Timestamptz(6)
+  workflow_runs workflow_runs    @relation(fields: [run_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([run_id], map: "idx_step_results_run")
+}
+
+model users {
+  id            String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email         String         @unique
+  name          String
+  role          user_role_enum @default(viewer)
+  password_hash String
+  is_active     Boolean        @default(true)
+  notify_email  Boolean        @default(true)
+  created_at    DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime       @default(now()) @db.Timestamptz(6)
+  analyses      analyses[]
+  workflows     workflows[]
+  refresh_tokens refresh_tokens[]
+}
+model refresh_tokens {
+  id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id    String   @db.Uuid
+  token_hash String
+  expires_at DateTime
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  users users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+model workflow_runs {
+  id           String               @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  workflow_id  String               @db.Uuid
+  status       workflow_status_enum @default(running)
+  triggered_by trigger_type_enum    @default(schedule)
+  started_at   DateTime             @default(now()) @db.Timestamptz(6)
+  finished_at  DateTime?            @db.Timestamptz(6)
+  result       Json?
+  error        String?
+  step_results step_results[]
+  workflows    workflows            @relation(fields: [workflow_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_workflow_runs_status")
+  @@index([workflow_id], map: "idx_workflow_runs_workflow")
+}
+
+model workflows {
+  id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  name           String
+  description    String?
+  created_by     String?           @db.Uuid
+  trigger_type   trigger_type_enum @default(schedule)
+  trigger_config Json              @default("{}")
+  steps          Json              @default("[]")
+  output_type    output_type_enum  @default(email)
+  output_config  Json              @default("{}")
+  is_active      Boolean           @default(true)
+  last_run       DateTime?         @db.Timestamptz(6)
+  next_run       DateTime?         @db.Timestamptz(6)
+  created_at     DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime          @default(now()) @db.Timestamptz(6)
+  workflow_runs  workflow_runs[]
+  users          users?            @relation(fields: [created_by], references: [id], onUpdate: NoAction)
+}
+
+enum agent_name_enum {
+  planner
+  data_agent
+  investigator
+  visualizer
+  reporter
+}
+
+enum chart_type_enum {
+  bar
+  line
+  pie
+  heatmap
+  scatter
+  kpi_card
+  table
+  area
+  funnel
+}
+
+enum data_source_type_enum {
+  postgresql
+  mysql
+  csv
+  excel
+  api
+  stripe
+  salesforce
+  hubspot
+  bigquery
+  mongodb
+}
+
+enum dimension_enum {
+  region
+  product
+  segment
+  channel
+  campaign
+  time_period
+  employee
+  custom
+}
+
+enum entity_type_enum {
+  customer
+  product
+  region
+  campaign
+  employee
+  vendor
+}
+
+enum event_type_enum {
+  sale
+  churn
+  signup
+  refund
+  upgrade
+  downgrade
+  support_ticket
+  login
+  page_view
+  custom
+}
+
+enum output_type_enum {
+  email
+  slack
+  dashboard
+  pdf
+  webhook
+  none
+}
+
+enum segment_enum {
+  enterprise
+  smb
+  startup
+  free
+  trial
+  churned
+}
+
+enum step_status_enum {
+  pending
+  running
+  success
+  failed
+  skipped
+}
+
+enum trigger_type_enum {
+  schedule
+  event
+  manual
+}
+
+enum user_role_enum {
+  admin
+  analyst
+  viewer
+}
+
+enum workflow_status_enum {
+  running
+  success
+  failed
+  cancelled
+  skipped
+}

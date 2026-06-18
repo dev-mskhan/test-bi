@@ -4,10 +4,10 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
-
+import { statsRouter } from './routes/dashboardStatsRoutes';
 import { Server as SocketServer } from 'socket.io';
 import { connectDB } from './db';
-import { authRouter, dashboardAuth } from './dashboardAuthRoutes';
+import { authRouter, dashboardAuth } from './routes/dashboardAuthRoutes';
 import ingestRoutes    from './routes/ingestRoutes';
 import logRoutes       from './routes/logRoutes';
 import deliveryRoutes  from './routes/deliveryRoutes';
@@ -37,17 +37,16 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(cookieParser());
+app.use(cookieParser(process.env.JWT_ACCESS_SECRET)); 
 
 // ── Public routes ────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ status: 'ok', server: 'webhook' }));
 app.use('/webhooks/ingest', ingestRoutes);     // called by main-server
-app.use('/auth',            authRouter);       // dashboard login/register
-
+app.use('/auth',            authRouter);   
 // ── Protected dashboard API ──────────────────────────────────────────────────
 app.use('/api/logs',       dashboardAuth, logRoutes);
 app.use('/api/deliveries', dashboardAuth, deliveryRoutes);
-app.get('/api/stats',      dashboardAuth, deliveryRoutes);
+app.use('/api/stats',      dashboardAuth, statsRouter);
 
 // ── Error handler ────────────────────────────────────────────────────────────
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

@@ -4,13 +4,17 @@ import crypto from 'crypto';
 import { pool } from './db';
 
 const ACCESS_SECRET   = process.env.JWT_ACCESS_SECRET!;
-const REFRESH_SECRET  = process.env.JWT_REFRESH_SECRET!;
+const REFRESH_SECRET  = process.env.JWT_REFRESH_SECRET!; // kept for env validation; refresh tokens themselves are opaque random strings, not JWTs
 const ACCESS_EXPIRES  = process.env.JWT_ACCESS_EXPIRES  || '15m';
-const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
+const REFRESH_EXPIRES_MS = parseExpiryToMs(process.env.JWT_REFRESH_EXPIRES || '7d');
+
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+  throw new Error('JWT_ACCESS_SECRET and JWT_REFRESH_SECRET must be set');
+}
 
 export async function dashboardRegister(email: string, password: string, name: string, webhookName: string) {
   const existing = await pool.query(
-    'SELECT id FROM dashboard_users WHERE email = $1', [email]
+    'SELECT id FROM dashboard_users WHERE email = $1', [email.toLowerCase().trim()]
   );
   if (existing.rows.length > 0) throw new Error('Email already registered');
 
@@ -47,13 +51,7 @@ export async function dashboardLogin(email: string, password: string) {
   if (!valid) throw new Error('Invalid credentials');
 
   const user = { id: rows[0].id, email: rows[0].email, name: rows[0].name };
-
-  const endpointRows = await pool.query(
-    `SELECT webhook_id, secret as webhook_secret FROM webhook_endpoints WHERE dashboard_user_id = $1 LIMIT 1`,
-    [user.id]
-  );
-  const endpoint = endpointRows.rows[0];
-
+  const endpoint = await getEndpointForUser(user.id);
   const tokens = await buildTokenPair(user);
   return { user, tokens, endpoint };
 }
@@ -61,7 +59,7 @@ export async function dashboardLogin(email: string, password: string) {
 export async function dashboardRefresh(rawToken: string) {
   const hash = hashToken(rawToken);
   const { rows } = await pool.query(
-    `SELECT rt.*, u.id AS uid, u.email, u.name
+    `SELECT rt.id, u.id AS uid, u.email, u.name
      FROM dashboard_refresh_tokens rt
      JOIN dashboard_users u ON u.id = rt.user_id
      WHERE rt.token_hash = $1 AND rt.expires_at > now()`,
@@ -69,15 +67,11 @@ export async function dashboardRefresh(rawToken: string) {
   );
   if (!rows[0]) throw new Error('Invalid or expired refresh token');
 
+  // Rotate: delete the used token immediately so it can't be replayed
   await pool.query('DELETE FROM dashboard_refresh_tokens WHERE id = $1', [rows[0].id]);
+
   const user = { id: rows[0].uid, email: rows[0].email, name: rows[0].name };
-
-  const endpointRows = await pool.query(
-    `SELECT webhook_id, secret as webhook_secret FROM webhook_endpoints WHERE dashboard_user_id = $1 LIMIT 1`,
-    [user.id]
-  );
-  const endpoint = endpointRows.rows[0];
-
+  const endpoint = await getEndpointForUser(user.id);
   const tokens = await buildTokenPair(user);
   return { user, tokens, endpoint };
 }
@@ -94,18 +88,20 @@ export async function getDashboardUser(userId: string) {
   );
   if (!rows[0]) throw new Error('User not found');
   const user = rows[0];
-
-  const endpointRows = await pool.query(
-    `SELECT webhook_id, secret as webhook_secret FROM webhook_endpoints WHERE dashboard_user_id = $1 LIMIT 1`,
-    [user.id]
-  );
-  const endpoint = endpointRows.rows[0] || null;
-
+  const endpoint = await getEndpointForUser(user.id);
   return { user, endpoint };
 }
 
 export function verifyDashboardToken(token: string) {
   return jwt.verify(token, ACCESS_SECRET) as jwt.JwtPayload;
+}
+
+async function getEndpointForUser(userId: string) {
+  const { rows } = await pool.query(
+    `SELECT webhook_id, secret as webhook_secret FROM webhook_endpoints WHERE dashboard_user_id = $1 LIMIT 1`,
+    [userId]
+  );
+  return rows[0] || null;
 }
 
 async function buildTokenPair(user: { id: string; email: string; name: string }) {
@@ -116,22 +112,27 @@ async function buildTokenPair(user: { id: string; email: string; name: string })
   );
   const refreshToken = crypto.randomBytes(64).toString('hex');
   const tokenHash    = hashToken(refreshToken);
+  const expiresAt    = new Date(Date.now() + REFRESH_EXPIRES_MS);
 
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
+  // Cap concurrent sessions per user; drop oldest if over limit (optional but recommended)
   await pool.query(
     `INSERT INTO dashboard_refresh_tokens (user_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
     [user.id, tokenHash, expiresAt]
   );
 
-  return {
-    accessToken,
-    refreshToken,
-  };
+  return { accessToken, refreshToken };
 }
 
 function hashToken(t: string) {
   return crypto.createHash('sha256').update(t).digest('hex');
+}
+
+// Parses simple durations like '7d', '15m', '12h', '30s' into milliseconds.
+function parseExpiryToMs(value: string): number {
+  const match = /^(\d+)([smhd])$/.exec(value.trim());
+  if (!match) return 7 * 24 * 60 * 60 * 1000; // fallback: 7 days
+  const num = Number(match[1]);
+  const unitMs = { s: 1000, m: 60_000, h: 3_600_000, d: 86_400_000 }[match[2] as 's' | 'm' | 'h' | 'd'];
+  return num * unitMs;
 }
