@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
-import { useLogoutMutation } from "../../features/auth/authApi";
+import {
+  useLogoutMutation,
+  useGetWebhookVerificationUrlQuery,
+} from "../../features/auth/authApi";
 import { BarChart3, Users, LogOut, Sparkles, Copy, Check } from "lucide-react";
 import toast from "react-hot-toast";
 
 export const Sidebar: React.FC = () => {
-  const { user } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   const [logoutMut] = useLogoutMutation();
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -14,9 +17,12 @@ export const Sidebar: React.FC = () => {
 
   const isAnalysesActive = pathname === "/" || pathname === "/analysis";
 
-  const webhookUrl = user?.webhook_id
-    ? `http://localhost:5001/webhook/${user.webhook_id}`
-    : null;
+  // Fetch webhook verification URL only if user is authenticated and has webhook_id
+  const { data: webhookData } = useGetWebhookVerificationUrlQuery(undefined, {
+    skip: !isAuthenticated || !user?.webhook_id,
+  });
+
+  const webhookUrl = webhookData?.data?.verification_url || null;
 
   const handleLogout = async () => {
     try {

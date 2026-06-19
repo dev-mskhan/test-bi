@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRegisterMutation } from "../authApi";
 import { useNavigate, Link } from "react-router-dom";
+import { useAppSelector } from "../../../app/hooks";
 import toast from "react-hot-toast";
 import Button from "../../../components/ui/Button";
 
@@ -12,6 +13,14 @@ export const RegisterForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [register, { isLoading }] = useRegisterMutation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  // Navigate to dashboard once authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -40,12 +49,14 @@ export const RegisterForm: React.FC = () => {
       const res = await register({ name, email, password, role }).unwrap();
       if (res.success) {
         toast.success("Account created successfully");
-        navigate("/");
+        // No need to navigate manually - useEffect will handle it when isAuthenticated updates
       } else {
         toast.error(res.message || "Failed to create account");
       }
     } catch (err: any) {
-      toast.error(err?.data?.message || "Registration failed. Try a different email.");
+      toast.error(
+        err?.data?.message || "Registration failed. Try a different email.",
+      );
     }
   };
 
@@ -118,8 +129,13 @@ export const RegisterForm: React.FC = () => {
       </Button>
 
       <div className="text-center pt-2">
-        <span className="text-xs text-[#888888]">Already have an account? </span>
-        <Link to="/login" className="text-xs text-[#6366f1] hover:underline font-medium">
+        <span className="text-xs text-[#888888]">
+          Already have an account?{" "}
+        </span>
+        <Link
+          to="/login"
+          className="text-xs text-[#6366f1] hover:underline font-medium"
+        >
           Sign in
         </Link>
       </div>

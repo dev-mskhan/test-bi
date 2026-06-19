@@ -1,32 +1,39 @@
 import { Request, Response, NextFunction } from "express";
 import * as authService from "../services/authService";
-import { emitUserEvent } from "../services/emitter";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
-
+import crypto from "crypto";
+import { emitUserCreatedWebhook } from "../services/emitter";
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure:   process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production",
   sameSite: "strict" as const,
-  maxAge:   7 * 24 * 60 * 60 * 1000,
-  signed:   true,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  signed: true,
 };
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const { email, password, name, role } = req.body;
-
-  const { user, tokens } = await authService.registerUser(email, password, name, role);
+  const { user, tokens } = await authService.registerUser(
+    email,
+    password,
+    name,
+    role,
+  );
 
   res.cookie("refreshToken", tokens.refreshToken, COOKIE_OPTS);
   res.cookie("accessToken", tokens.accessToken, COOKIE_OPTS);
-  emitUserEvent("user.registered", {
-    userId: user.id,
-    email:  user.email,
-    name:   user.name,
+  void emitUserCreatedWebhook({
+    webhookId: user.webhook_id!,
+    name: user.name,
+    email: user.email,
+    role: user.role,
   });
 
-  return res.status(201).json(new ApiResponse(201, { user }, "Registered successfully"));
+  return res
+    .status(201)
+    .json(new ApiResponse(201, { user }, "Registered successfully"));
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -36,16 +43,9 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
 
   res.cookie("refreshToken", tokens.refreshToken, COOKIE_OPTS);
   res.cookie("accessToken", tokens.accessToken, COOKIE_OPTS);
-  emitUserEvent("user.login", {
-    userId:    user.id,
-    email:     user.email,
-    ip:        req.ip,
-    userAgent: req.headers["user-agent"],
-  });
 
   return res.json(new ApiResponse(200, { user }, "Login successful"));
 });
-
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
   const token = req.signedCookies?.refreshToken;
@@ -53,12 +53,6 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   res.clearCookie("refreshToken", { path: "/" });
   res.clearCookie("accessToken", { path: "/" });
-  if ((req as any).user) {
-    emitUserEvent("user.logout", {
-      userId: (req as any).user.id,
-      email:  (req as any).user.email,
-    });
-  }
 
   return res.json(new ApiResponse(200, null, "Logged out"));
 });
@@ -83,20 +77,44 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
 
 export const updateMe = asyncHandler(async (req: Request, res: Response) => {
   const { name, notify_email, email } = req.body;
-  const user = await authService.updateUser((req as any).user.id, { name, notify_email, email });
+  const user = await authService.updateUser((req as any).user.id, {
+    name,
+    notify_email,
+    email,
+  });
   return res.json(new ApiResponse(200, user, "Profile updated"));
 });
 
-export const changePassword = asyncHandler(async (req: Request, res: Response) => {
-  const { current_password, new_password } = req.body;
-  const userId = (req as any).user.id;
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { current_password, new_password } = req.body;
+    const userId = (req as any).user.id;
 
-  await authService.changePassword(userId, current_password, new_password);
+    await authService.changePassword(userId, current_password, new_password);
 
-  emitUserEvent("user.password_changed", {
-    userId,
-    email: (req as any).user.email,
-  });
+    return res.json(new ApiResponse(200, null, "Password changed"));
+  },
+);
 
-  return res.json(new ApiResponse(200, null, "Password changed"));
-});
+export const getWebhookVerificationUrl = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = (req as any).user.id;
+    const user = await authService.getUserById(userId);
+
+    if (!user.webhook_id) {
+      throw new ApiError(400, "User does not have a webhook configured");
+    }
+
+    const webhookServerUrl =
+      process.env.WEBHOOK_SERVER_URL || "http://localhost:5001";
+    const verificationUrl = `${webhookServerUrl}/webhook/${user.webhook_id}`;
+
+    return res.json(
+      new ApiResponse(
+        200,
+        { webhook_id: user.webhook_id, verification_url: verificationUrl },
+        "Webhook verification URL retrieved",
+      ),
+    );
+  },
+);

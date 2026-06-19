@@ -6,7 +6,7 @@ import { runWebhookAnalysis } from "../graphs/biWebhookGraph";
 import { sendWorkflowReport } from "../workflow/reportDelivery";
 import { prisma } from "./prisma";
 
-const connection = { host: "localhost", port: 6379 };
+const connection = { host: "localhost", port: 6380 };
 
 // ── Queues ────────────────────────────────────────────────
 export const analysisQueue = new Queue("analysis", { connection });
@@ -19,7 +19,10 @@ async function processAnalysisJob(job: Job) {
     dataSourceId?: string;
   };
 
-  logger.info({ analysisId, question, jobName: job.name }, "Processing analysis job");
+  logger.info(
+    { analysisId, question, jobName: job.name },
+    "Processing analysis job",
+  );
 
   await prisma.analyses.update({
     where: { id: analysisId },
@@ -52,7 +55,10 @@ export const analysisWorker = new Worker("analysis", processAnalysisJob, {
 export const workflowWorker = new Worker(
   "workflow",
   async (job: Job) => {
-    const { workflowId, runId } = job.data as { workflowId: string; runId: string };
+    const { workflowId, runId } = job.data as {
+      workflowId: string;
+      runId: string;
+    };
     logger.info({ workflowId, runId }, "Processing workflow job");
 
     await prisma.workflow_runs.update({
@@ -61,7 +67,9 @@ export const workflowWorker = new Worker(
     });
 
     try {
-      const workflow = await prisma.workflows.findUniqueOrThrow({ where: { id: workflowId } });
+      const workflow = await prisma.workflows.findUniqueOrThrow({
+        where: { id: workflowId },
+      });
 
       // Create analysis from workflow question embedded in steps
       const steps = workflow.steps as Array<{ task: string }>;
@@ -111,7 +119,6 @@ export const workflowWorker = new Worker(
         where: { id: workflowId },
         data: { last_run: new Date() },
       });
-
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       await prisma.workflow_runs.update({
@@ -121,11 +128,19 @@ export const workflowWorker = new Worker(
       throw err;
     }
   },
-  { connection, concurrency: 2 }
+  { connection, concurrency: 2 },
 );
 
 // Log worker events
-analysisWorker.on("completed", (job) => logger.info({ jobId: job.id }, "Analysis job completed"));
-analysisWorker.on("failed", (job, err) => logger.error({ jobId: job?.id, err }, "Analysis job failed"));
-workflowWorker.on("completed", (job) => logger.info({ jobId: job.id }, "Workflow job completed"));
-workflowWorker.on("failed", (job, err) => logger.error({ jobId: job?.id, err }, "Workflow job failed"));
+analysisWorker.on("completed", (job) =>
+  logger.info({ jobId: job.id }, "Analysis job completed"),
+);
+analysisWorker.on("failed", (job, err) =>
+  logger.error({ jobId: job?.id, err }, "Analysis job failed"),
+);
+workflowWorker.on("completed", (job) =>
+  logger.info({ jobId: job.id }, "Workflow job completed"),
+);
+workflowWorker.on("failed", (job, err) =>
+  logger.error({ jobId: job?.id, err }, "Workflow job failed"),
+);

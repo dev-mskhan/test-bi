@@ -29,24 +29,9 @@ export type Analysis = {
   } | null;
   findings: {
     summary: string;
-    anomalies?: Array<{
-      field: string;
-      value: number;
-      zscore: number;
-      description: string;
-    }>;
-    trends?: Array<{
-      direction: "up" | "down" | "flat";
-      magnitude: number;
-      period: string;
-      description: string;
-    }>;
-    correlations?: Array<{
-      field_a: string;
-      field_b: string;
-      correlation: number;
-      interpretation: string;
-    }>;
+    anomalies?: Array<{ field: string; value: number; zscore: number; description: string }>;
+    trends?: Array<{ direction: "up" | "down" | "flat"; magnitude: number; period: string; description: string }>;
+    correlations?: Array<{ field_a: string; field_b: string; correlation: number; interpretation: string }>;
     top_drivers?: string[];
     risk_level?: "low" | "medium" | "high" | "critical";
     confidence_score?: number;
@@ -56,12 +41,7 @@ export type Analysis = {
     root_causes?: string[];
     key_findings?: string[];
     recommendations?: string[];
-    next_actions?: Array<{
-      action: string;
-      owner: string;
-      priority: "high" | "medium" | "low";
-      deadline: string;
-    }>;
+    next_actions?: Array<{ action: string; owner: string; priority: "high" | "medium" | "low"; deadline: string }>;
     confidence_score?: number;
     risk_level?: "low" | "medium" | "high" | "critical";
   } | null;
@@ -73,15 +53,7 @@ export type Analysis = {
 };
 
 export type ChartConfig = {
-  type:
-    | "bar"
-    | "line"
-    | "pie"
-    | "heatmap"
-    | "scatter"
-    | "kpi_card"
-    | "table"
-    | "area";
+  type: "bar" | "line" | "pie" | "heatmap" | "scatter" | "kpi_card" | "table" | "area";
   title: string;
   labels?: string[];
   values?: number[];
@@ -115,12 +87,7 @@ export type Workflow = {
   };
   steps: {
     order: number;
-    agent:
-      | "planner"
-      | "data_agent"
-      | "investigator"
-      | "visualizer"
-      | "reporter";
+    agent: "planner" | "data_agent" | "investigator" | "visualizer" | "reporter";
     task: string;
     config?: Record<string, unknown>;
   }[];

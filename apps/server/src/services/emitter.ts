@@ -1,59 +1,44 @@
-import axios from "axios";
-import crypto from "crypto";
+const WEBHOOK_SERVER_URL =
+  process.env.WEBHOOK_SERVER_URL ?? "http://localhost:5002";
 
-const WEBHOOK_SERVER_URL = process.env.WEBHOOK_SERVER_URL!;
-const WEBHOOK_SECRET     = process.env.WEBHOOK_SECRET!;
-const WEBHOOK_ID         = process.env.WEBHOOK_ID!;
-
-export type UserEventType =
-  | "user.registered"
-  | "user.login"
-  | "user.logout"
-  | "user.password_changed"
-  | "user.deleted";
-
-export interface WebhookPayload {
-  event:     UserEventType;
-  timestamp: string;
-  data:      Record<string, unknown>;
+interface EmitUserCreatedPayload {
+  webhookId: string;
+  name: string;
+  email: string;
+  role: string;
 }
 
-export async function emitUserEvent(
-  event: UserEventType,
-  data:  Record<string, unknown>
+export async function emitUserCreatedWebhook(
+  payload: EmitUserCreatedPayload,
 ): Promise<void> {
-  if (!WEBHOOK_SERVER_URL || !WEBHOOK_SECRET || !WEBHOOK_ID) {
-    console.warn("⚠️  Webhook env vars not set, skipping emit");
-    return;
-  }
-
-  const payload: WebhookPayload = {
-    event,
-    timestamp: new Date().toISOString(),
-    data,
-  };
-
-  const body      = JSON.stringify(payload);
-  const signature = crypto
-    .createHmac("sha256", WEBHOOK_SECRET)
-    .update(body)
-    .digest("hex");
-
   try {
-    await axios.post(
-      `${WEBHOOK_SERVER_URL}/webhooks/ingest/${WEBHOOK_ID}`,
-      payload,
+    const response = await fetch(
+      `${WEBHOOK_SERVER_URL}/webhooks/user-created`,
       {
+        method: "POST",
         headers: {
-          "Content-Type":        "application/json",
-          "x-webhook-signature": signature,
-          "x-webhook-timestamp": payload.timestamp,
+          "Content-Type": "application/json",
         },
-        timeout: 5_000,
-      }
+        body: JSON.stringify(payload),
+      },
     );
-    console.log(`📡 Webhook emitted: ${event}`);
-  } catch (err) {
-    console.error(`⚠️  Webhook emit failed for ${event}:`, err);
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(
+        `[webhook-emitter] webhook-server-1 responded with ${response.status}: ${body}`,
+      );
+      return;
+    }
+
+    console.log(
+      `[webhook-emitter] user-created webhook delivered for webhookId=${payload.webhookId}`,
+    );
+  } catch (error) {
+    // Intentionally non-blocking: a failed webhook emit should not fail signup.
+    console.error(
+      "[webhook-emitter] Failed to emit user-created webhook:",
+      error,
+    );
   }
 }

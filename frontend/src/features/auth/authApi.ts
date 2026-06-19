@@ -72,7 +72,20 @@ export const authApi = baseApi.injectEndpoints({
         }
       },
     }),
+    getWebhookVerificationUrl: builder.query<
+      ApiResponse<{ webhook_id: string; verification_url: string }>,
+      void
+    >({
+      query: () => "/auth/webhook-verification-url",
+      providesTags: ["User"],
+    }),
   }),
 });
 
-export const { useMeQuery, useLoginMutation, useRegisterMutation, useLogoutMutation } = authApi;
+export const {
+  useMeQuery,
+  useLoginMutation,
+  useRegisterMutation,
+  useLogoutMutation,
+  useGetWebhookVerificationUrlQuery,
+} = authApi;
