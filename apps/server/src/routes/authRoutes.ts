@@ -6,7 +6,6 @@ import {
   me,
   updateMe,
   changePassword,
-  getWebhookVerificationUrl,
 } from "../controllers/authController";
 import { authHandler, optionalAuth } from "../middleware/authHandler";
 import { validateRequest } from "../middleware/validateRequest";
@@ -57,7 +56,6 @@ router.post(
 router.post("/login", authLimiter, validateRequest(loginSchema), login);
 router.post("/logout", authHandler, logout);
 router.get("/me", optionalAuth, me);
-router.get("/webhook-verification-url", authHandler, getWebhookVerificationUrl);
 router.patch("/me", authHandler, updateMe);
 router.patch(
   "/change-password",

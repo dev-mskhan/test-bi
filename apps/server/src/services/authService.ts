@@ -21,9 +21,9 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: string;
-  webhook_id?: string;
-  webhook_secret?: string;
+  webhook_url: string;
+  webhook_id: string;
+  role?: string;
 }
 
 function generateAccessToken(user: AuthUser): string {
@@ -63,7 +63,9 @@ export async function registerUser(
   email: string,
   password: string,
   name: string,
-  role?: string,
+  webhook_id: string,
+  webhook_url: string,
+  role?: string
 ): Promise<{ user: AuthUser; tokens: TokenPair }> {
   const existing = await prisma.users.findUnique({
     where: { email: email.toLowerCase().trim() },
@@ -72,9 +74,6 @@ export async function registerUser(
 
   const password_hash = await bcrypt.hash(password, 12);
 
-  const webhook_id = `wh_${crypto.randomUUID()}`;
-  const webhook_secret = crypto.randomBytes(32).toString("hex");
-
   const created = await prisma.users.create({
     data: {
       email: email.toLowerCase().trim(),
@@ -82,9 +81,9 @@ export async function registerUser(
       password_hash,
       role: (role ?? "viewer") as any,
       webhook_id,
-      webhook_secret,
+      webhook_url
     },
-    select: { id: true, email: true, name: true, role: true },
+    select: { id: true, email: true, name: true, role: true, webhook_id: true, webhook_url: true },
   });
 
   const user: AuthUser = {
@@ -92,8 +91,8 @@ export async function registerUser(
     email: created.email,
     name: created.name,
     role: created.role,
-    webhook_id,
-    webhook_secret,
+    webhook_id: created.webhook_id!,
+    webhook_url: created.webhook_url!,
   };
   const tokens = await createTokenPair(user);
   return { user, tokens };
@@ -117,8 +116,8 @@ export async function loginUser(
     email: found.email,
     name: found.name,
     role: found.role,
-    webhook_id: found.webhook_id || undefined,
-    webhook_secret: found.webhook_secret || undefined,
+    webhook_url: found.webhook_url!,
+    webhook_id: found.webhook_id!,
   };
   const tokens = await createTokenPair(user);
   return { user, tokens };
@@ -143,6 +142,8 @@ export async function refreshTokens(rawToken: string): Promise<TokenPair> {
     email: stored.users.email,
     name: stored.users.name,
     role: stored.users.role,
+    webhook_url: stored.users.webhook_url!,
+    webhook_id: stored.users.webhook_id!,
   };
   return createTokenPair(user);
 }
@@ -160,6 +161,7 @@ export async function getUserById(userId: string) {
       email: true,
       name: true,
       role: true,
+      webhook_url: true,
       webhook_id: true,
       notify_email: true,
       created_at: true,
@@ -181,8 +183,7 @@ export async function updateUser(
       email: true,
       name: true,
       role: true,
-      webhook_id: true,
-      notify_email: true,
+      notify_email: true
     },
   });
 }

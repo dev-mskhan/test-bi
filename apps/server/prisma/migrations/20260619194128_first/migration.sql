@@ -134,12 +134,12 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "role" "user_role_enum" NOT NULL DEFAULT 'viewer',
     "password_hash" TEXT NOT NULL,
-    "webhook_id" TEXT,
-    "webhook_secret" TEXT,
+    "webhook_url" TEXT NOT NULL DEFAULT 'pending',
+    "webhook_id" TEXT NOT NULL DEFAULT 'pending',
     "is_active" BOOLEAN NOT NULL DEFAULT true,
     "notify_email" BOOLEAN NOT NULL DEFAULT true,
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -167,6 +167,29 @@ CREATE TABLE "workflow_runs" (
     "error" TEXT,
 
     CONSTRAINT "workflow_runs_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "business_profiles" (
+    "id" UUID NOT NULL DEFAULT uuid_generate_v4(),
+    "user_id" UUID NOT NULL,
+    "webhook_id" TEXT NOT NULL,
+    "business_name" TEXT NOT NULL,
+    "business_type" TEXT NOT NULL,
+    "owner_name" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "phone" TEXT NOT NULL,
+    "city" TEXT NOT NULL,
+    "country" TEXT NOT NULL DEFAULT 'Pakistan',
+    "website" TEXT,
+    "employee_count" INTEGER,
+    "annual_revenue" TEXT,
+    "description" TEXT,
+    "services" TEXT[],
+    "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "business_profiles_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -223,6 +246,9 @@ CREATE INDEX "idx_step_results_run" ON "step_results"("run_id");
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_webhook_url_key" ON "users"("webhook_url");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "users_webhook_id_key" ON "users"("webhook_id");
 
 -- CreateIndex
@@ -230,6 +256,9 @@ CREATE INDEX "idx_workflow_runs_status" ON "workflow_runs"("status");
 
 -- CreateIndex
 CREATE INDEX "idx_workflow_runs_workflow" ON "workflow_runs"("workflow_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "business_profiles_user_id_key" ON "business_profiles"("user_id");
 
 -- AddForeignKey
 ALTER TABLE "analyses" ADD CONSTRAINT "analyses_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;
@@ -242,6 +271,9 @@ ALTER TABLE "refresh_tokens" ADD CONSTRAINT "refresh_tokens_user_id_fkey" FOREIG
 
 -- AddForeignKey
 ALTER TABLE "workflow_runs" ADD CONSTRAINT "workflow_runs_workflow_id_fkey" FOREIGN KEY ("workflow_id") REFERENCES "workflows"("id") ON DELETE CASCADE ON UPDATE NO ACTION;
+
+-- AddForeignKey
+ALTER TABLE "business_profiles" ADD CONSTRAINT "business_profiles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "workflows" ADD CONSTRAINT "workflows_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION;

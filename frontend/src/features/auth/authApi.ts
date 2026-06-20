@@ -79,6 +79,10 @@ export const authApi = baseApi.injectEndpoints({
       query: () => "/auth/webhook-verification-url",
       providesTags: ["User"],
     }),
+    getBusinessProfile: builder.query<ApiResponse<any>, string>({
+      query: (userId) => `/webhook/business-profile/${userId}`,
+      providesTags: ["User"],
+      }),
   }),
 });
 
@@ -88,4 +92,5 @@ export const {
   useRegisterMutation,
   useLogoutMutation,
   useGetWebhookVerificationUrlQuery,
+  useGetBusinessProfileQuery,
 } = authApi;

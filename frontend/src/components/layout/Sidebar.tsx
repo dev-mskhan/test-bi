@@ -1,11 +1,25 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAppSelector } from "../../app/hooks";
 import {
   useLogoutMutation,
-  useGetWebhookVerificationUrlQuery,
+  useMeQuery,
+  useGetBusinessProfileQuery,
 } from "../../features/auth/authApi";
-import { BarChart3, Users, LogOut, Sparkles, Copy, Check } from "lucide-react";
+import {
+  BarChart3,
+  Users,
+  LogOut,
+  Sparkles,
+  Copy,
+  Check,
+  RefreshCw,
+  Building2,
+  MapPin,
+  Phone,
+  Globe,
+  User as UserIcon,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 export const Sidebar: React.FC = () => {
@@ -14,15 +28,24 @@ export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [copiedWebhookId, setCopiedWebhookId] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isAnalysesActive = pathname === "/" || pathname === "/analysis";
 
-  // Fetch webhook verification URL only if user is authenticated and has webhook_id
-  const { data: webhookData } = useGetWebhookVerificationUrlQuery(undefined, {
-    skip: !isAuthenticated || !user?.webhook_id,
-  });
+  const { webhookUrl } = useMemo(() => {
+    return {
+      webhookUrl: user?.webhook_url!,
+    };
+  }, [user]);
 
-  const webhookUrl = webhookData?.data?.verification_url || null;
+  const { refetch: refetchMe } = useMeQuery();
+  const {
+    data: businessProfileRes,
+    refetch: refetchBusinessProfile,
+    isFetching: isBusinessProfileFetching,
+  } = useGetBusinessProfileQuery(user?.id as string, { skip: !user?.id });
+
+  const businessProfile = businessProfileRes?.data;
 
   const handleLogout = async () => {
     try {
@@ -47,15 +70,42 @@ export const Sidebar: React.FC = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await Promise.all([refetchMe(), refetchBusinessProfile()]);
+      toast.success("Refreshed");
+    } catch {
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const navItems = [{ to: "/", label: "Analyses", icon: BarChart3, end: true }];
 
   return (
     <aside className="w-64 bg-[#1a1a1a] border-r border-[#2a2a2a] flex flex-col h-screen text-[#ededed]">
-      <div className="h-16 flex items-center gap-2 px-6 border-b border-[#2a2a2a]">
-        <Sparkles className="w-5 h-5 text-indigo-500" />
-        <span className="font-semibold text-lg tracking-tight">
-          AI BI Platform
-        </span>
+      <div className="h-16 flex items-center justify-between gap-2 px-6 border-b border-[#2a2a2a]">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-indigo-500" />
+          <span className="font-semibold text-lg tracking-tight">
+            AI BI Platform
+          </span>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          title="Refresh user & business profile"
+          className="text-[#888888] hover:text-[#ededed] transition-colors disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`w-4 h-4 ${
+              isRefreshing || isBusinessProfileFetching ? "animate-spin" : ""
+            }`}
+          />
+        </button>
       </div>
 
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
@@ -98,6 +148,77 @@ export const Sidebar: React.FC = () => {
           </>
         )}
 
+        {businessProfile && (
+            <>
+            <div className="pt-4 pb-2 px-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">
+              Business Profile
+            </div>
+            <div className="px-3 py-2.5 bg-[#1f1f1f] rounded-md mx-1 space-y-2.5">
+              <div className="flex items-start gap-2">
+                <Building2 className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-indigo-400" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate capitalize">
+                    {businessProfile.business_name}
+                  </p>
+                  <p className="text-xs text-[#888888] capitalize">
+                    {businessProfile.business_type}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <UserIcon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#888888]" />
+                <p className="text-xs text-[#cccccc] capitalize truncate">
+                  {businessProfile.owner_name}
+                </p>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#888888]" />
+                <p className="text-xs text-[#cccccc] capitalize truncate">
+                  {businessProfile.city}, {businessProfile.country}
+                </p>
+              </div>
+
+              {businessProfile.phone && (
+                <div className="flex items-start gap-2">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#888888]" />
+                  <p className="text-xs text-[#cccccc] truncate">
+                    {businessProfile.phone}
+                  </p>
+                </div>
+              )}
+
+              {businessProfile.website && (
+                <div className="flex items-start gap-2">
+                  <Globe className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#888888]" />
+                  <a
+                    href={businessProfile.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 truncate"
+                  >
+                    {businessProfile.website.replace(/^https?:\/\//, "")}
+                  </a>
+                </div>
+              )}
+
+              {businessProfile.services && businessProfile.services.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {businessProfile.services.map((service: string) => (
+                    <span
+                      key={service}
+                      className="text-[10px] px-2 py-0.5 bg-[#2a2a2a] text-[#cccccc] rounded-full"
+                    >
+                      {service}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            </>
+        )}
+
         {webhookUrl && (
           <>
             <div className="pt-4 pb-2 px-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">
@@ -111,7 +232,7 @@ export const Sidebar: React.FC = () => {
                 onClick={copyWebhookUrl}
                 className="w-full flex items-center gap-2 px-2 py-2 bg-[#2a2a2a] hover:bg-[#333333] rounded-md text-xs text-[#6366f1] font-mono break-all transition-colors text-left"
                 title={webhookUrl}
-              >
+                >
                 <span className="flex-1 truncate">{webhookUrl}</span>
                 {copiedWebhookId ? (
                   <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-400" />
@@ -120,7 +241,7 @@ export const Sidebar: React.FC = () => {
                 )}
               </button>
             </div>
-          </>
+                </>
         )}
       </nav>
 

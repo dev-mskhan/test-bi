@@ -22,7 +22,7 @@ app.use(
 );
 
 app.use(
-  cors({ origin: process.env.CLIENT_ORIGIN ? process.env.CLIENT_ORIGIN.split(",") : "http://localhost:5173", credentials: true })
+  cors({ origin: ["*", "http://localhost:3002", "https://roman-villain-manifesto.ngrok-free.dev"], credentials: true })
 );
 
 app.use(express.json({ limit: "2mb" }));

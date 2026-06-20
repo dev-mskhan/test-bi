@@ -11,6 +11,7 @@ datasource db {
 model webhook_users {
   id             String   @id @default(uuid())
   webhook_id     String   @unique
+  webhook_secret String
 
   name           String
   email          String

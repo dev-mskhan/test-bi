@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../generated/prisma";
 
 // Prevent multiple PrismaClient instances in dev (ts-node-dev hot reload)
 declare global {

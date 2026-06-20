@@ -5,7 +5,7 @@ export type User = {
   role: "admin" | "analyst" | "viewer";
   createdAt: string;
   webhook_id?: string;
-  webhook_secret?: string;
+  webhook_url?: string;
 };
 
 export type Analysis = {

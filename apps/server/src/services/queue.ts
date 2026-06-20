@@ -6,7 +6,7 @@ import { runWebhookAnalysis } from "../graphs/biWebhookGraph";
 import { sendWorkflowReport } from "../workflow/reportDelivery";
 import { prisma } from "./prisma";
 
-const connection = { host: "localhost", port: 6380 };
+const connection = { host: "localhost", port: 6389 };
 
 // ── Queues ────────────────────────────────────────────────
 export const analysisQueue = new Queue("analysis", { connection });

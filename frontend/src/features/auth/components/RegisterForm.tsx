@@ -49,7 +49,6 @@ export const RegisterForm: React.FC = () => {
       const res = await register({ name, email, password, role }).unwrap();
       if (res.success) {
         toast.success("Account created successfully");
-        // No need to navigate manually - useEffect will handle it when isAuthenticated updates
       } else {
         toast.error(res.message || "Failed to create account");
       }

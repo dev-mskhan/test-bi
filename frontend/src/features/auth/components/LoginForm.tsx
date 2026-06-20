@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLoginMutation } from "../authApi";
 import { useNavigate, Link } from "react-router-dom";
+import { useAppSelector } from "../../../app/hooks";
 import toast from "react-hot-toast";
 import Button from "../../../components/ui/Button";
 
@@ -10,6 +11,14 @@ export const LoginForm: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [login, { isLoading }] = useLoginMutation();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    console.log("[LoginForm] isAuthenticated changed:", isAuthenticated);
+    if (isAuthenticated) {
+      navigate("/");
+    }
+  }, [isAuthenticated, navigate]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -35,7 +44,8 @@ export const LoginForm: React.FC = () => {
       const res = await login({ email, password }).unwrap();
       if (res.success) {
         toast.success("Successfully logged in");
-        navigate("/");
+        // No manual navigate here — useEffect handles it once
+        // isAuthenticated flips to true in the store
       } else {
         toast.error(res.message || "Failed to log in");
       }

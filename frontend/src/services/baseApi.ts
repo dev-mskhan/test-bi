@@ -1,11 +1,10 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-
+import { createApi, fetchBaseQuery, retry } from "@reduxjs/toolkit/query/react";
+const baseQueryWithRetry = retry(fetchBaseQuery({ baseUrl: (import.meta.env.VITE_API_URL) + "/api", credentials: "include" }), {
+  maxRetries: 2,
+});
 export const baseApi = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: (import.meta.env.VITE_API_URL || "http://localhost:3000") + "/api",
-    credentials: "include",   // required — auth is cookie-based
-  }),
+  baseQuery: baseQueryWithRetry,
   tagTypes: ["User", "Analysis", "Workflows"],
   endpoints: () => ({}),
 });

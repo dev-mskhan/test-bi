@@ -7,7 +7,7 @@ import {
   createOrUpdateWebhookUser,
   getWebhookUserByWebhookId,
 } from "../services/webhookUser.service";
-
+import { prisma } from "../config/prisma";
 export async function handleUserCreated(req: Request, res: Response) {
   const parsed = createWebhookUserSchema.safeParse(req.body);
 
@@ -75,3 +75,26 @@ export async function handleGetWebhookUser(req: Request, res: Response) {
     });
   }
 }
+export const handleVerifyWebhook = 
+  async (req: Request, res: Response) => {
+    const { webhookId } = req.params;
+
+    const webhookUser = await prisma.webhook_users.findUnique({
+      where: { webhook_id: webhookId },
+    });
+
+    if (!webhookUser) {
+      // Redirect to frontend with an error state instead of a raw 404
+      const frontendUrl = process.env.CORS_ORIGIN!;
+      return res.json({
+        success: false,
+        url: `${frontendUrl}/webhook/not-found`});
+    }
+
+    const frontendUrl = process.env.CORS_ORIGIN!;
+    return res.json({
+      status: "success",
+      url: `${frontendUrl}/webhook/${webhookUser.webhook_id}`
+    }
+    );
+  }

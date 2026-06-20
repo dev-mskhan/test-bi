@@ -5,16 +5,18 @@ import { useState } from "react";
 
 export default function WebhookVerificationPage() {
   const { webhookId } = useParams<{ webhookId: string }>();
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const { data, error, isLoading } = useGetWebhookUserQuery(webhookId ?? "", {
     skip: !webhookId,
   });
 
-  const copyToClipboard = (text: string, fieldName: string) => {
+  const copyAll = () => {
+    if (!data) return;
+    const text = `Webhook ID: ${data.webhookId}\nName: ${data.name}\nEmail: ${data.email}`;
     navigator.clipboard.writeText(text);
-    setCopiedField(fieldName);
-    setTimeout(() => setCopiedField(null), 2000);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -29,9 +31,6 @@ export default function WebhookVerificationPage() {
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">User Information</h1>
-          <p className="text-gray-500 mt-2">
-            Webhook ID: <span className="font-mono text-sm">{webhookId}</span>
-          </p>
         </div>
 
         {/* Content */}
@@ -55,53 +54,36 @@ export default function WebhookVerificationPage() {
             <div className="space-y-6">
               {/* User Info Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  label="Full Name"
-                  value={data.name}
-                  onCopy={() => copyToClipboard(data.name, "name")}
-                  isCopied={copiedField === "name"}
-                />
-                <FormField
-                  label="Email Address"
-                  value={data.email}
-                  onCopy={() => copyToClipboard(data.email, "email")}
-                  isCopied={copiedField === "email"}
-                />
+                <ReadOnlyField label="Webhook ID" value={data.webhookId} />
+                <ReadOnlyField label="Full Name" value={data.name} />
+                <ReadOnlyField label="Email Address" value={data.email} />
               </div>
 
-              {/* Account Details Section */}
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">
-                  Account Details
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    label="Role"
-                    value={data.role}
-                    onCopy={() => copyToClipboard(data.role, "role")}
-                    isCopied={copiedField === "role"}
-                  />
-                  <FormField
-                    label="Created At"
-                    value={new Date(data.createdAt).toLocaleString()}
-                    onCopy={() =>
-                      copyToClipboard(
-                        new Date(data.createdAt).toLocaleString(),
-                        "createdAt",
-                      )
-                    }
-                    isCopied={copiedField === "createdAt"}
-                  />
-                </div>
-              </div>
+              {/* Single copy-all button */}
+              <button
+                onClick={copyAll}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 transition-colors"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-green-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Details
+                  </>
+                )}
+              </button>
 
               {/* Metadata */}
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                 <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">
-                  Last Updated
+                  Created
                 </p>
                 <p className="text-sm text-gray-700">
-                  {new Date(data.updatedAt).toLocaleString()}
+                  {new Date(data.createdAt).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -117,43 +99,24 @@ export default function WebhookVerificationPage() {
   );
 }
 
-function FormField({
+function ReadOnlyField({
   label,
   value,
-  onCopy,
-  isCopied,
-  isSecret = false,
 }: {
   label: string;
   value: string;
-  onCopy: () => void;
-  isCopied: boolean;
-  isSecret?: boolean;
 }) {
   return (
     <div>
       <label className="block text-xs uppercase tracking-wider text-gray-600 font-semibold mb-2">
         {label}
       </label>
-      <div className="flex items-center gap-2">
-        <input
-          type={isSecret ? "password" : "text"}
-          value={value}
-          readOnly
-          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg text-sm font-mono focus:outline-none cursor-not-allowed"
-        />
-        <button
-          onClick={onCopy}
-          className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-gray-900"
-          title={isCopied ? "Copied!" : "Copy to clipboard"}
-        >
-          {isCopied ? (
-            <Check className="w-4 h-4 text-green-500" />
-          ) : (
-            <Copy className="w-4 h-4" />
-          )}
-        </button>
-      </div>
+      <input
+        type="text"
+        value={value}
+        readOnly
+        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 text-gray-900 rounded-lg text-sm font-mono focus:outline-none cursor-not-allowed"
+      />
     </div>
   );
 }

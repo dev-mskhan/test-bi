@@ -103,19 +103,18 @@ model users {
   role           user_role_enum  @default(viewer)
 
   password_hash  String
-
-  webhook_id     String?         @unique
-  webhook_secret String?
-
+  webhook_url    String   @unique @default("pending")
+  webhook_id     String   @unique @default("pending")
   is_active      Boolean         @default(true)
   notify_email   Boolean         @default(true)
 
   created_at     DateTime        @default(now()) @db.Timestamptz(6)
-  updated_at     DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime        @updatedAt @db.Timestamptz(6)
 
-  analyses       analyses[]
-  workflows      workflows[]
-  refresh_tokens refresh_tokens[]
+  analyses          analyses[]
+  workflows         workflows[]
+  refresh_tokens    refresh_tokens[]
+  business_profile  business_profiles?
 }
 model refresh_tokens {
   id         String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
@@ -141,7 +140,29 @@ model workflow_runs {
   @@index([status], map: "idx_workflow_runs_status")
   @@index([workflow_id], map: "idx_workflow_runs_workflow")
 }
+model business_profiles {
+  id               String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id          String   @unique @db.Uuid
+  webhook_id       String   
 
+  business_name    String
+  business_type    String
+  owner_name       String
+  email            String
+  phone            String
+  city             String
+  country          String   @default("Pakistan")
+  website          String?
+  employee_count   Int?
+  annual_revenue   String?
+  description      String?
+  services         String[] 
+
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  users            users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
 model workflows {
   id             String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
   name           String

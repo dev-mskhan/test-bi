@@ -41,7 +41,6 @@ const App: React.FC = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<AnalysisPage />} />
-            <Route path="/analysis" element={<AnalysisPage />} />
             <Route path="/analysis/:id" element={<AnalysisDetailPage />} />
             <Route path="/users" element={<UsersPage />} />
           </Route>

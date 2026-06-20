@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Business Form</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 640px;
+      padding: 40px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      color: #6b7280;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .webhook-box {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 28px;
+    }
+
+    .webhook-box label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #16a34a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .webhook-box input {
+      width: 100%;
+      border: 1px solid #bbf7d0;
+      border-radius: 6px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+    }
+
+    .webhook-box input:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.15);
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .grid.full { grid-template-columns: 1fr; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .required { color: #ef4444; margin-left: 2px; }
+
+    input, select, textarea {
+      padding: 10px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 14px;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .btn {
+      width: 100%;
+      padding: 13px;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 24px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover { background: #4f46e5; }
+    .btn:active { transform: scale(0.99); }
+    .btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .alert {
+      margin-top: 20px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .alert.success {
+      background: #f0fdf4;
+      border: 1px solid #86efac;
+      color: #166534;
+    }
+
+    .alert.error {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      color: #991b1b;
+    }
+
+    @media (max-width: 500px) {
+      .grid { grid-template-columns: 1fr; }
+      .card { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Business Information Form</h1>
+    <p class="subtitle">Fill out the form and enter your webhook URL</p>
+
+    <!-- Webhook URL (top pe, clearly visible) -->
+    <div class="webhook-box">
+      <label>🔗 Your Webhook URL</label>
+      <input
+        type="url"
+        id="webhook_url"
+        placeholder="https://your-server.com/api/webhook/receive/abc123"
+        required
+      />
+    </div>
+
+    <div class="section-title">Business Information</div>
+
+    <div class="grid">
+      <div class="field">
+        <label>Business Name <span class="required">*</span></label>
+        <input type="text" id="businessName" placeholder="ABC Traders" required />
+      </div>
+      <div class="field">
+        <label>Business Type <span class="required">*</span></label>
+        <select id="businessType" required>
+          <option value="">-- Select --</option>
+          <option value="retail">Retail</option>
+          <option value="service">Service</option>
+          <option value="manufacturing">Manufacturing</option>
+          <option value="technology">Technology</option>
+          <option value="healthcare">Healthcare</option>
+          <option value="education">Education</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label>Owner Name <span class="required">*</span></label>
+        <input type="text" id="ownerName" placeholder="Ahmed Khan" required />
+      </div>
+      <div class="field">
+        <label>Email <span class="required">*</span></label>
+        <input type="email" id="email" placeholder="info@business.com" required />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label>Phone <span class="required">*</span></label>
+        <input type="tel" id="phone" placeholder="+92 300 1234567" required />
+      </div>
+      <div class="field">
+        <label>City <span class="required">*</span></label>
+        <input type="text" id="city" placeholder="Lahore" required />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label>Country</label>
+        <input type="text" id="country" value="Pakistan" />
+      </div>
+      <div class="field">
+        <label>Website</label>
+        <input type="url" id="website" placeholder="https://example.com" />
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label>Employee Count</label>
+        <input type="number" id="employeeCount" placeholder="25" min="1" />
+      </div>
+      <div class="field">
+        <label>Annual Revenue</label>
+        <select id="annualRevenue">
+          <option value="">-- Select --</option>
+          <option value="under_1M">Under 1M</option>
+          <option value="1M_10M">1M – 10M</option>
+          <option value="10M_50M">10M – 50M</option>
+          <option value="50M_plus">50M+</option>
+          <option value="prefer_not_to_say">Prefer not to say</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid full">
+      <div class="field">
+        <label>Services (comma separated)</label>
+        <input type="text" id="services" placeholder="Web Design, SEO, Marketing" />
+      </div>
+    </div>
+
+    <div class="grid full">
+      <div class="field">
+        <label>Description</label>
+        <textarea id="description" placeholder="Brief about your business..."></textarea>
+      </div>
+    </div>
+
+    <button class="btn" id="submitBtn" onclick="submitForm()">
+      Submit & Send to Webhook
+    </button>
+
+    <div class="alert" id="alertBox"></div>
+  </div>
+
+  <script>
+    async function submitForm() {
+      const btn = document.getElementById('submitBtn');
+      const alertBox = document.getElementById('alertBox');
+
+      // Values collect karo
+      const webhook_url    = document.getElementById('webhook_url').value.trim();
+      const businessName   = document.getElementById('businessName').value.trim();
+      const businessType   = document.getElementById('businessType').value;
+      const ownerName      = document.getElementById('ownerName').value.trim();
+      const email          = document.getElementById('email').value.trim();
+      const phone          = document.getElementById('phone').value.trim();
+      const city           = document.getElementById('city').value.trim();
+      const country        = document.getElementById('country').value.trim();
+      const website        = document.getElementById('website').value.trim();
+      const employeeCount  = document.getElementById('employeeCount').value;
+      const annualRevenue  = document.getElementById('annualRevenue').value;
+      const services       = document.getElementById('services').value.trim();
+      const description    = document.getElementById('description').value.trim();
+
+      // Basic validation
+      if (!webhook_url || !businessName || !businessType || !ownerName || !email || !phone || !city) {
+        showAlert('error', '❌ Fields required (Webhook URL, Business Name, Type, Owner, Email, Phone, City)');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Bhej raha hai...';
+      alertBox.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/form/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            webhook_url, businessName, businessType,
+            ownerName, email, phone, city, country,
+            website, employeeCount, annualRevenue,
+            services, description
+          })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          showAlert('success', '✅ Form successfully submitted');
+          // Form reset
+          document.querySelectorAll('input, select, textarea').forEach(el => {
+            if (el.id !== 'country') el.value = '';
+          });
+          document.getElementById('country').value = 'Pakistan';
+        } else {
+          showAlert('error', `❌ ${data.message}${data.detail ? '<br><small>' + data.detail + '</small>' : ''}`);
+        }
+      } catch (err) {
+        showAlert('error', '❌ Network error.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit & Send to Webhook';
+      }
+    }
+
+    function showAlert(type, msg) {
+      const box = document.getElementById('alertBox');
+      box.className = `alert ${type}`;
+      box.innerHTML = msg;
+      box.style.display = 'block';
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  </script>
+</body>
+</html>
