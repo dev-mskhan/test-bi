@@ -31,7 +31,7 @@ export const Sidebar: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const isAnalysesActive = pathname === "/" || pathname === "/analysis";
-
+  console.log("webhookUrl:", user?.webhook_url); // Debug log for webhook URL
   const { webhookUrl } = useMemo(() => {
     return {
       webhookUrl: user?.webhook_url!,
@@ -149,7 +149,7 @@ export const Sidebar: React.FC = () => {
         )}
 
         {businessProfile && (
-            <>
+          <>
             <div className="pt-4 pb-2 px-3 text-xs font-semibold text-[#888888] uppercase tracking-wider">
               Business Profile
             </div>
@@ -203,20 +203,21 @@ export const Sidebar: React.FC = () => {
                 </div>
               )}
 
-              {businessProfile.services && businessProfile.services.length > 0 && (
-                <div className="flex flex-wrap gap-1 pt-1">
-                  {businessProfile.services.map((service: string) => (
-                    <span
-                      key={service}
-                      className="text-[10px] px-2 py-0.5 bg-[#2a2a2a] text-[#cccccc] rounded-full"
-                    >
-                      {service}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {businessProfile.services &&
+                businessProfile.services.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {businessProfile.services.map((service: string) => (
+                      <span
+                        key={service}
+                        className="text-[10px] px-2 py-0.5 bg-[#2a2a2a] text-[#cccccc] rounded-full"
+                      >
+                        {service}
+                      </span>
+                    ))}
+                  </div>
+                )}
             </div>
-            </>
+          </>
         )}
 
         {webhookUrl && (
@@ -232,7 +233,7 @@ export const Sidebar: React.FC = () => {
                 onClick={copyWebhookUrl}
                 className="w-full flex items-center gap-2 px-2 py-2 bg-[#2a2a2a] hover:bg-[#333333] rounded-md text-xs text-[#6366f1] font-mono break-all transition-colors text-left"
                 title={webhookUrl}
-                >
+              >
                 <span className="flex-1 truncate">{webhookUrl}</span>
                 {copiedWebhookId ? (
                   <Check className="w-3.5 h-3.5 flex-shrink-0 text-green-400" />
@@ -241,7 +242,7 @@ export const Sidebar: React.FC = () => {
                 )}
               </button>
             </div>
-                </>
+          </>
         )}
       </nav>
 

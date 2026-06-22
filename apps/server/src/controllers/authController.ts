@@ -5,12 +5,22 @@ import { ApiResponse } from "../utils/ApiResponse";
 import { asyncHandler } from "../utils/asyncHandler";
 import crypto from "crypto";
 import { emitUserCreatedWebhook } from "../services/emitter";
+
 const COOKIE_OPTS = {
   httpOnly: true,
   secure: true,
   sameSite: "none" as const,
   maxAge: 7 * 24 * 60 * 60 * 1000,
   signed: true,
+  path: "/",
+};
+
+const COOKIE_CLEAR_OPTS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "none" as const,
+  signed: true,
+  path: "/",
 };
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
@@ -23,7 +33,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     name,
     webhook_id,
     webhook_url,
-    role
+    role,
   );
 
   res.cookie("refreshToken", tokens.refreshToken, COOKIE_OPTS);
@@ -48,8 +58,8 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
   const token = req.signedCookies?.refreshToken;
   if (token) await authService.logoutUser(token);
 
-  res.clearCookie("refreshToken", { path: "/" });
-  res.clearCookie("accessToken", { path: "/" });
+  res.clearCookie("refreshToken", COOKIE_CLEAR_OPTS);
+  res.clearCookie("accessToken", COOKIE_CLEAR_OPTS);
 
   return res.json(new ApiResponse(200, null, "Logged out"));
 });
